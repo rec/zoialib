@@ -3,27 +3,29 @@ from typer import Argument, Option, Typer
 import re
 import sys
 
-from . import app, expand_files, is_zoia_file
-DRY_RUN = True
+from . import app, DRY_RUN, expand_files, split_file
 
 
 @app.command()
 def rename(files: list[Path], *, dry_run: bool = DRY_RUN, force: bool=False) -> None:
     missing, zoia, not_zoia, already_exists = [], [], [], []
     for file in expand_files(files):
-        if not is_zoia_file(f):
-            not_zoia.append(f)
-        elif not file.exists():
-            missing.append(f)
+        try:
+            prefix, base = split_file(file)
+        except ValueError:
+            not_zoia.append(file)
+            continue
+        if not file.exists():
+            missing.append(file)
         else:
-            new_file = file.parent / m.group(1)
+            new_file = file.parent / base
             if not force and new_file.exists():
                 already_exists.append(new_file)
             else:
                 zoia.append((file, new_file))
 
     if not_zoia:
-        print(f"WARNING: not renaming: {not_zoia}", file=sys.stderr)
+        print(f"WARNING: not zoia files: {not_zoia}", file=sys.stderr)
 
     errors = []
     if missing:
