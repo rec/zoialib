@@ -4,12 +4,13 @@ import typing as t
 from pathlib import Path
 from typer import Argument, Option, Typer
 import re
+import shutil
 import sys
 import tomlkit
 
 from . import app, DRY_RUN, expand_files, split_file
 
-EMPTY_PATCH = Path(__file__).parent / 'zoia_empty.bin'
+EMPTY_PATCH = Path(__file__).parents[1] / 'zoia_empty.bin'
 TIMESTAMP = datetime.datetime.now().strftime("%d-%m-%Y_%H-%M-%S")
 
 
@@ -26,8 +27,15 @@ def prepare(
 ) -> None:
     files = list(expand_files(files))
     cfg = tomlkit.loads(zlib.read_text()) if zlib.exists() else tomlkit.TOMLDocument()
-    slot_list = _compute_slot_list(cfg.setdefault("slots", {}), files, slot_count)
-    print(*slot_list, sep="\n")
+
+    if not directory.exists():
+        print("Making directory:", directory)
+    if not dry_run:
+        directory.mkdir(exist_ok=True, parents=True)
+    for source, target in _compute_slot_list(cfg.setdefault("slots", {}), files, slot_count):
+        print(f"Copying {source} to {directory}/{target}")
+        if not dry_run:
+            shutil.copy(str(source), str(directory / target))
 
 
 def _compute_slot_list(

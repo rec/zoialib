@@ -6,7 +6,7 @@ from pathlib import Path
 
 ZFILE_MATCH = re.compile(r"(\d\d\d_zoia_)(.*\.bin)").match
 LIBFILE_MATCH = re.compile(r".*\.bin").match
-DRY_RUN = True
+DRY_RUN = False
 
 
 app = Typer(
