@@ -17,7 +17,7 @@ app = Typer(
 
 
 def split_file(file: str | Path) -> tuple[str, str]:
-    s = file.name
+    s = Path(file).name
     if m := ZFILE_MATCH(s):
         return m.groups()
     if m := LIBFILE_MATCH(s):
