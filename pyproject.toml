@@ -1,5 +1,5 @@
 [project]
-name = "zlib"
+name = "zolib"
 version = "0.1.0"
 description = "A patch librarian for the Empress ZOIA"
 readme = "README.md"

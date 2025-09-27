@@ -100,7 +100,7 @@ wheels = [
 ]
 
 [[package]]
-name = "zlib"
+name = "zolib"
 version = "0.1.0"
 source = { virtual = "." }
 dependencies = [
