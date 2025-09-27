@@ -13,29 +13,67 @@ from . import app, DRY_RUN, expand_files, split_file
 EMPTY_PATCH = Path(__file__).parents[1] / 'zoia_empty.bin'
 TIMESTAMP = datetime.datetime.now().strftime("%d-%m-%Y_%H-%M-%S")
 
+"""
+TODO:
+
+* rewrite zlib.toml
+* write some tests
+* add typer Arguments and Options
+* write documentation
+
+"""
+
 
 @app.command()
 def prepare(
-    files: list[Path],
-    directory: Path = Path(f"zoia-{TIMESTAMP}"),
-    zlib: Path = Path("zlib.toml"),
-    write_zlib: bool = True,
-    dry_run: bool = DRY_RUN,
-    force: bool = False,
-    overwrite: bool = False,
-    slot_count: int = 0,
+    files: list[Path] = Argument(
+        help="List of file names to prepare",
+    ),
+    output: Path = Option(
+        Path(f"zoia-{TIMESTAMP}"),
+        "--output",
+        "-o",
+        help="Directory to write patch files to",
+    ),
+    slots_file: Path = Option(
+        Path("slots_file.toml"),
+        "--slots-file",
+        "-s",
+        help="Set the file used to store slot lists",
+    ),
+    write_slots_file: bool = Option(
+        True,
+        "--write-slots-file",
+        "-w/-n",
+        help="If true, overwrite the slots file ",
+    ),
+    dry_run: bool = Option(
+        DRY_RUN,
+        "--dry-run",
+        "-d",
+        help="Print commands, don't execute them",
+    ),
+    slot_count: int = Option(
+        0,
+        "--slot-count",
+        "-s",
+        help="How many slots to fill. If zero, fill to the last slot",
+    ),
 ) -> None:
     files = list(expand_files(files))
-    cfg = tomlkit.loads(zlib.read_text()) if zlib.exists() else tomlkit.TOMLDocument()
+    if slots_file.exists():
+        cfg = tomlkit.loads(slots_file.read_text())
+    else:
+        cfg = tomlkit.TOMLDocument()
 
-    if not directory.exists():
-        print("Making directory:", directory)
+    if not output.exists():
+        print("Making output:", output)
     if not dry_run:
-        directory.mkdir(exist_ok=True, parents=True)
+        output.mkdir(exist_ok=True, parents=True)
     for source, target in _compute_slot_list(cfg.setdefault("slots", {}), files, slot_count):
-        print(f"Copying {source} to {directory}/{target}")
+        print(f"Copying {source} to {output}/{target}")
         if not dry_run:
-            shutil.copy(str(source), str(directory / target))
+            shutil.copy(str(source), str(output / target))
 
 
 def _compute_slot_list(

@@ -7,7 +7,21 @@ from . import app, DRY_RUN, expand_files, split_file
 
 
 @app.command()
-def rename(files: list[Path], *, dry_run: bool = DRY_RUN, force: bool=False) -> None:
+def rename(
+    files: list[Path],
+    dry_run: bool = Option(
+        DRY_RUN,
+        "--dry-run",
+        "-d",
+        help="Print commands, don't execute them",
+    ),
+    force: bool = Option(
+        False,
+        "--force",
+        "-f",
+        help="Overwrite existing files",
+    ),
+) -> None:
     missing, zoia, not_zoia, already_exists = [], [], [], []
     for file in expand_files(files):
         try:
