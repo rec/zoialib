@@ -1,20 +1,20 @@
 from pathlib import Path
 from typer import Argument, Option, Typer
 import re
+import sys
 
 from . import app
 
 ZFILE_MATCH = re.compile(r"\d\d\d_zoia_(.*\.bin)").match
+DRY_RUN = True
 
 
 @app.command()
-def rename(files: list[Path], *, force: bool=False) -> None:
-    if missing := [f for f in files if not f.exists()]:
-        sys.exit(f"ERROR: {missing}")
-
+def rename(files: list[Path], *, dry_run: bool = DRY_RUN, force: bool=False) -> None:
+    print(*files)
     missing, zoia, not_zoia, already_exists = [], [], [], []
     for file in files:
-        if not f.exists():
+        if not file.exists():
             missing.append(f)
         elif not (m := ZFILE_MATCH(file.name)):
             not_zoia.append(f)
@@ -40,5 +40,6 @@ def rename(files: list[Path], *, force: bool=False) -> None:
         sys.exit('\nERROR: '.join(("", *errors)).strip())
 
     for old, new in zoia:
-        old.rename(new)
         print(old, "->", new)
+        if not dry_run:
+            old.rename(new)
