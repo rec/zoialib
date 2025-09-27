@@ -3,20 +3,18 @@ from typer import Argument, Option, Typer
 import re
 import sys
 
-from . import app
-
-ZFILE_MATCH = re.compile(r"\d\d\d_zoia_(.*\.bin)").match
+from . import app, expand_files, is_zoia_file
 DRY_RUN = True
 
 
 @app.command()
 def rename(files: list[Path], *, dry_run: bool = DRY_RUN, force: bool=False) -> None:
     missing, zoia, not_zoia, already_exists = [], [], [], []
-    for file in files:
-        if not file.exists():
-            missing.append(f)
-        elif not (m := ZFILE_MATCH(file.name)):
+    for file in expand_files(files):
+        if not is_zoia_file(f):
             not_zoia.append(f)
+        elif not file.exists():
+            missing.append(f)
         else:
             new_file = file.parent / m.group(1)
             if not force and new_file.exists():
@@ -32,7 +30,7 @@ def rename(files: list[Path], *, dry_run: bool = DRY_RUN, force: bool=False) -> 
         errors.append(f"Missing: {missing}")
     if already_exists:
         errors.append(f"Cannot overwrite: {already_exists}. Use -f to replace")
-    if not zoia:
+    if not (errors or zoia):
         errors.append("No files to rename")
 
     if errors:
