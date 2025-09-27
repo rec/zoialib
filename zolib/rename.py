@@ -11,7 +11,6 @@ DRY_RUN = True
 
 @app.command()
 def rename(files: list[Path], *, dry_run: bool = DRY_RUN, force: bool=False) -> None:
-    print(*files)
     missing, zoia, not_zoia, already_exists = [], [], [], []
     for file in files:
         if not file.exists():
