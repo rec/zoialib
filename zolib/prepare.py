@@ -16,9 +16,7 @@ TIMESTAMP = datetime.datetime.now().strftime("%d-%m-%Y_%H-%M-%S")
 """
 TODO:
 
-* rewrite zlib.toml
 * write some tests
-* add typer Arguments and Options
 * write documentation
 
 """
@@ -38,7 +36,7 @@ def prepare(
     slots_file: Path = Option(
         Path("slots_file.toml"),
         "--slots-file",
-        "-s",
+        "-f",
         help="Set the file used to store slot lists",
     ),
     write_slots_file: bool = Option(
@@ -46,6 +44,12 @@ def prepare(
         "--write-slots-file",
         "-w/-n",
         help="If true, overwrite the slots file ",
+    ),
+    verbose: bool = Option(
+        False,
+        "--verbose",
+        "-v",
+        help="Print more information",
     ),
     dry_run: bool = Option(
         DRY_RUN,
@@ -66,14 +70,29 @@ def prepare(
     else:
         cfg = tomlkit.TOMLDocument()
 
-    if not output.exists():
-        print("Making output:", output)
+    if verbose and not output.exists():
+        print("Making output directory", output)
     if not dry_run:
         output.mkdir(exist_ok=True, parents=True)
-    for source, target in _compute_slot_list(cfg.setdefault("slots", {}), files, slot_count):
-        print(f"Copying {source} to {output}/{target}")
+
+    # return [(f, f"{i:03}_zoia_{base}") for i, (f, base) in enumerate(slot_list)]
+
+    slot_list = _compute_slot_list(cfg.get("slots", {}), files, slot_count)
+    for i, (source, base) in enumerate(slot_list):
+        assert isinstance(base, str), base
+        target = output / f"{i:03}_zoia_{base}"
+        if verbose:
+            print(f"Copying {source} to {target}")
         if not dry_run:
-            shutil.copy(str(source), str(output / target))
+            if write_slots_file and base:
+                slot = cfg.setdefault("slots", {}).setdefault(f"{i:03}", [])
+                if base not in slot:
+                    slot.append(base)
+
+            shutil.copy(str(source), str(target))
+
+    if write_slots_file and not dry_run and cfg:
+        slots_file.write_text(cfg.as_string())
 
 
 def _compute_slot_list(
@@ -126,9 +145,9 @@ def _compute_slot_list(
             break
         if s:
             continue
-        for s in slots.get(str(i), ()):
-            if name := todo_names.pop(s, None):
-                slot_list[i] = (s, name)
+        for sl in slots.get(f"{i:03}", ()):
+            if f := todo_names.pop(sl, None):
+                slot_list[i] = (f, sl)
                 break
 
     names = [(f, b) for b, f in reversed(todo_names.items())]
@@ -138,4 +157,4 @@ def _compute_slot_list(
     while len(slot_list) > slot_count and not slot_list[-1]:
         slot_list.pop()
 
-    return [(f, f"{i:03}_zoia_{base}") for i, (f, base) in enumerate(slot_list)]
+    return slot_list
