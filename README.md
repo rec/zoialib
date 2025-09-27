@@ -1,4 +1,4 @@
-# zolib
+# zoialib
 
 Command line librarian for Empress ZOIA patches
 
@@ -13,7 +13,7 @@ A file name looks like this:
 
 We will store them without the `023_zoai` prefix.
 
-    zolib rename FILE [FILE...]
+    zoialib rename FILE [FILE...]
 
 
 Defs:
@@ -25,6 +25,6 @@ Defs:
 
 Renames all files to get rid of the prefix and recreate them when writing a zdir
 
-We want to remember slot assignments. A file called zolib.toml contains all the slots
+We want to remember slot assignments. A file called slot_list.toml contains all the slots
 assignments that have ever been seen, a map from slots to assignments. Because
 many patches may want to go into the same slot, these assignments are ordered.

@@ -1,5 +1,5 @@
 [project]
-name = "zolib"
+name = "zoialib"
 version = "0.2.0"
 description = "A patch librarian for the Empress ZOIA"
 readme = "README.md"
@@ -15,4 +15,4 @@ requires = ["hatchling"]
 build-backend = "hatchling.build"
 
 [project.scripts]
-zolib = "zolib.__main__:app"
+zoialib = "zoialib.__main__:app"
