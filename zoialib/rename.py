@@ -6,9 +6,12 @@ import sys
 from . import app, DRY_RUN, expand_files, split_file
 
 
-@app.command()
+HELP = "Rename ZOIA patch files to remove the slot number and marker string"
+
+
+@app.command(help=HELP)
 def rename(
-    files: list[Path],
+    files: list[Path] = Argument(help="A list of files to be renamed"),
     dry_run: bool = Option(
         DRY_RUN,
         "--dry-run",

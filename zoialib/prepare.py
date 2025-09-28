@@ -14,7 +14,7 @@ EMPTY_PATCH = Path(__file__).parents[1] / 'zoia_empty.bin'
 TIMESTAMP = datetime.datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
 
 
-@app.command()
+@app.command(help="Copy patch files into a ZOIA patch directory")
 def prepare(
     files: list[Path] = Argument(
         help="List of file names to prepare",
