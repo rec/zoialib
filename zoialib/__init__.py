@@ -33,9 +33,15 @@ def split_file(file: str | Path) -> tuple[str, str]:
 
 def expand_files(files: t.Iterable[Path]) -> t.Iterator[Path]:
     for f in files:
-        if glob.has_magic(s := str(f)):
+        base, sep, slot_index = (s := str(f)).partition(":")
+        f_base = Path(base)
+        if glob.has_magic(s):
+            if sep:
+                raise ValueError(f"Globs cannot have slot indexes: {s}")
             yield from expand_files(Path().glob(s))
-        elif f.suffix == ".txt":
+        elif f_base.suffix == ".txt":
+            if sep:
+                raise ValueError(f"Text files cannot have slot indexes: {s}")
             li = f.read_text().splitlines()
             yield from expand_files(
                 Path(t) for s in li if (t := s.partition("#")[0].strip())
