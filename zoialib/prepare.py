@@ -8,7 +8,8 @@ from pathlib import Path
 import tomlkit
 from typer import Argument, Option
 
-from . import DRY_RUN, app, expand_files, split_file
+from . import app
+from .file import expand_files, split_file
 
 EMPTY_PATCH = Path(__file__).parents[1] / "zoia_empty.bin"
 TIMESTAMP = datetime.datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
@@ -20,7 +21,7 @@ def prepare(
         help="List of file names to prepare",
     ),
     dry_run: bool = Option(
-        DRY_RUN,
+        False,
         "--dry-run",
         "-d",
         help="Print commands, don't execute them",

@@ -3,14 +3,15 @@ from pathlib import Path
 
 from typer import Argument, Option
 
-from . import DRY_RUN, app, expand_files, split_file
+from . import app
+from .file import expand_files, split_file
 
 
 @app.command(help="Rename ZOIA patch files to remove the slot number and marker string")
 def rename(
     files: list[Path] = Argument(help="A list of files to be renamed"),
     dry_run: bool = Option(
-        DRY_RUN,
+        False,
         "--dry-run",
         "-d",
         help="Print commands, don't execute them",
