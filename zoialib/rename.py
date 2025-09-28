@@ -21,7 +21,14 @@ def rename(
         "-f",
         help="Overwrite existing files",
     ),
+    verbose: bool = Option(
+        False,
+        "--verbose",
+        "-v",
+        help="Print more information",
+    ),
 ) -> None:
+    verbose = verbose or dry_run
     missing, zoia, not_zoia, already_exists = [], [], [], []
     for file in expand_files(files):
         try:
@@ -53,6 +60,8 @@ def rename(
         sys.exit('\nERROR: '.join(("", *errors)).strip())
 
     for old, new in zoia:
-        print(old, "->", new)
+        if verbose:
+            print(old, "->", new)
         if not dry_run:
             old.rename(new)
+    print(f"{len(zoia)} file{(len(zoia) != 1) * 's'} renamed")

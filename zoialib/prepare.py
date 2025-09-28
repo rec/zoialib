@@ -11,15 +11,7 @@ import tomlkit
 from . import app, DRY_RUN, expand_files, split_file
 
 EMPTY_PATCH = Path(__file__).parents[1] / 'zoia_empty.bin'
-TIMESTAMP = datetime.datetime.now().strftime("%d-%m-%Y_%H-%M-%S")
-
-"""
-TODO:
-
-* write some tests
-* write documentation
-
-"""
+TIMESTAMP = datetime.datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
 
 
 @app.command()
@@ -27,35 +19,17 @@ def prepare(
     files: list[Path] = Argument(
         help="List of file names to prepare",
     ),
-    output: Path = Option(
-        Path(f"zoia-{TIMESTAMP}"),
-        "--output",
-        "-o",
-        help="Directory to write patch files to",
-    ),
-    slots_file: Path = Option(
-        Path("slots_file.toml"),
-        "--slots-file",
-        "-f",
-        help="Set the file used to store slot lists",
-    ),
-    write_slots_file: bool = Option(
-        True,
-        "--write-slots-file",
-        "-w/-n",
-        help="If true, overwrite the slots file ",
-    ),
-    verbose: bool = Option(
-        False,
-        "--verbose",
-        "-v",
-        help="Print more information",
-    ),
     dry_run: bool = Option(
         DRY_RUN,
         "--dry-run",
         "-d",
         help="Print commands, don't execute them",
+    ),
+    output: Path = Option(
+        Path(f"zoia-{TIMESTAMP}"),
+        "--output",
+        "-o",
+        help="Directory to write patch files to",
     ),
     slot_count: int = Option(
         0,
@@ -63,19 +37,37 @@ def prepare(
         "-s",
         help="How many slots to fill. If zero, fill to the last slot",
     ),
+    slots_file: Path = Option(
+        Path("slots_file.toml"),
+        "--slots-file",
+        "-f",
+        help="Set the file used to store slot lists",
+    ),
+    verbose: bool = Option(
+        False,
+        "--verbose",
+        "-v",
+        help="Print more information",
+    ),
+    update_slots_file: bool = Option(
+        True,
+        "--update-slots-file",
+        "-w/-n",
+        help="If true, update the slot list file with the slot assignments",
+    ),
 ) -> None:
+    verbose = verbose or dry_run
     files = list(expand_files(files))
     if slots_file.exists():
         cfg = tomlkit.loads(slots_file.read_text())
     else:
         cfg = tomlkit.TOMLDocument()
 
-    if verbose and not output.exists():
-        print("Making output directory", output)
-    if not dry_run:
-        output.mkdir(exist_ok=True, parents=True)
-
-    # return [(f, f"{i:03}_zoia_{base}") for i, (f, base) in enumerate(slot_list)]
+    if not output.exists():
+        if verbose:
+            print("Making output directory", output)
+        if not dry_run:
+            output.mkdir(exist_ok=True, parents=True)
 
     slot_list = _compute_slot_list(cfg.get("slots", {}), files, slot_count)
     for i, (source, base) in enumerate(slot_list):
@@ -93,6 +85,7 @@ def prepare(
 
     if write_slots_file and not dry_run and cfg:
         slots_file.write_text(cfg.as_string())
+    print(f"{len(slot_list)} file{(len(slot_list) != 1) * 's'} copied to {output}")
 
 
 def _compute_slot_list(
