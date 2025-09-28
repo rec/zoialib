@@ -19,10 +19,13 @@ app = Typer(
 def split_file(file: str | Path) -> tuple[str, str]:
     s = Path(file).name
     if m := ZFILE_MATCH(s):
-        return m.groups()
-    if m := LIBFILE_MATCH(s):
-        return "", *m.groups()
-    raise ValueError("Not a patch file")
+        g = m.groups()
+    elif m := LIBFILE_MATCH(s):
+        g = "", *m.groups()
+    else:
+        raise ValueError("Not a patch file")
+    assert len(g) == 2
+    return g
 
 
 
@@ -30,6 +33,6 @@ def expand_files(files: t.Iterable[Path]) -> t.Iterator[Path]:
     for f in files:
         if f.suffix == ".txt":
             li = f.read_text().splitlines()
-            yield from expand_files(t for s in li if (t := s.partition("#")[0].strip()))
+            yield from expand_files(Path(t) for s in li if (t := s.partition("#")[0].strip()))
         else:
             yield f

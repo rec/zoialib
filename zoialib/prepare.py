@@ -138,7 +138,7 @@ def _compute_slot_list(
         if s:
             continue
         for sl in slots.get(f"{i:03}", ()):
-            if f := todo_names.pop(sl, None):
+            if (f := todo_names.pop(sl, _NO_PATH)) is not _NO_PATH:
                 slot_list[i] = (f, sl)
                 break
 
@@ -150,3 +150,6 @@ def _compute_slot_list(
         slot_list.pop()
 
     return slot_list
+
+
+_NO_PATH = Path()
