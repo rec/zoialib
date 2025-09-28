@@ -1,14 +1,12 @@
-from pathlib import Path
-from typer import Argument, Option
 import sys
+from pathlib import Path
 
-from . import app, DRY_RUN, expand_files, split_file
+from typer import Argument, Option
+
+from . import DRY_RUN, app, expand_files, split_file
 
 
-HELP = "Rename ZOIA patch files to remove the slot number and marker string"
-
-
-@app.command(help=HELP)
+@app.command(help="Rename ZOIA patch files to remove the slot number and marker string")
 def rename(
     files: list[Path] = Argument(help="A list of files to be renamed"),
     dry_run: bool = Option(
@@ -31,6 +29,20 @@ def rename(
     ),
 ) -> None:
     verbose = verbose or dry_run
+    try:
+        zoia = _rename(files, force, verbose)
+    except ValueError as e:
+        sys.exit("\n".join(e.args))
+
+    for old, new in zoia:
+        if verbose:
+            print(old, "->", new)
+        if not dry_run:
+            old.rename(new)
+    print(f"{len(zoia)} file{(len(zoia) != 1) * 's'} renamed")
+
+
+def _rename(files: list[Path], force: bool, verbose: bool) -> list[tuple[Path, Path]]:
     missing, zoia, not_zoia, already_exists = [], [], [], []
     for file in expand_files(files):
         try:
@@ -59,11 +71,6 @@ def rename(
         errors.append("No files to rename")
 
     if errors:
-        sys.exit('\nERROR: '.join(("", *errors)).strip())
+        raise ValueError("\nERROR: ".join(("", *errors)).strip())
 
-    for old, new in zoia:
-        if verbose:
-            print(old, "->", new)
-        if not dry_run:
-            old.rename(new)
-    print(f"{len(zoia)} file{(len(zoia) != 1) * 's'} renamed")
+    return zoia

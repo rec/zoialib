@@ -1,15 +1,16 @@
 import collections
 import datetime
-import typing as t
-from pathlib import Path
-from typer import Argument, Option
 import shutil
 import sys
+import typing as t
+from pathlib import Path
+
 import tomlkit
+from typer import Argument, Option
 
-from . import app, DRY_RUN, expand_files, split_file
+from . import DRY_RUN, app, expand_files, split_file
 
-EMPTY_PATCH = Path(__file__).parents[1] / 'zoia_empty.bin'
+EMPTY_PATCH = Path(__file__).parents[1] / "zoia_empty.bin"
 TIMESTAMP = datetime.datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
 
 
@@ -56,7 +57,6 @@ def prepare(
     ),
 ) -> None:
     verbose = verbose or dry_run
-    files = list(expand_files(files))
     if slots_file.exists():
         cfg = tomlkit.loads(slots_file.read_text())
     else:
@@ -68,30 +68,50 @@ def prepare(
         if not dry_run:
             output.mkdir(exist_ok=True, parents=True)
 
-    slot_list = _compute_slot_list(cfg.get("slots", {}), files, slot_count)
-    for i, (source, base) in enumerate(slot_list):
-        assert isinstance(base, str), base
-        target = output / f"{i:03}_zoia_{base}"
+    copies = _prepare(cfg, files, output, slot_count, slots_file, update_slots_file)
+    for source, target in copies:
         if verbose:
             print(f"Copying {source} to {target}")
         if not dry_run:
-            if update_slots_file and base:
-                slot = cfg.setdefault("slots", {}).setdefault(f"{i:03}", [])
-                if base not in slot:
-                    slot.append(base)
-
             shutil.copy(str(source), str(target))
 
-    if update_slots_file and not dry_run and cfg:
-        slots_file.write_text(cfg.as_string())
-    print(f"{len(slot_list)} file{(len(slot_list) != 1) * 's'} copied to {output}")
+    if update_slots_file and cfg:
+        if verbose:
+            print("Writing {slots_file}")
+        if not dry_run:
+            slots_file.write_text(cfg.as_string())
+
+    print(f"{len(copies)} file{(len(copies) != 1) * 's'} copied to {output}")
+
+
+def _prepare(
+    cfg: tomlkit.TOMLDocument,
+    files: list[Path],
+    output: Path,
+    slot_count: int,
+    slots_file: Path,
+    update_slots_file: bool,
+) -> list[tuple[Path, Path]]:
+    files = list(expand_files(files))
+    slot_list = _compute_slot_list(cfg.get("slots", {}), files, slot_count)
+
+    def copy(i: int, source: Path, base: str) -> tuple[Path, Path]:
+        assert isinstance(base, str), base
+        target = output / f"{i:03}_zoia_{base}"
+        if update_slots_file and base:
+            slot = cfg.setdefault("slots", {}).setdefault(f"{i:03}", [])
+            if base not in slot:
+                slot.append(base)
+        return source, target
+
+    return [copy(i, s, b) for i, (s, b) in enumerate(slot_list)]
 
 
 def _compute_slot_list(
     slots: dict[str, t.Any],
     files: list[Path],
     slot_count: int,
-):
+) -> list[tuple[Path, str]]:
     slot_assignments = {}
     todo, bad, bad_slots, collisions = [], [], [], []
     max_slot = max(len(files), slot_count) - 1
@@ -116,7 +136,7 @@ def _compute_slot_list(
         else:
             slot_assignments[slot] = (f, base)
 
-    errors = []
+    errors: list[str] = []
     if bad:
         errors.append(f"Not zoia: {bad}")
     if bad_slots:
@@ -127,7 +147,7 @@ def _compute_slot_list(
     if dupes := [k for k, v in d.items() if v > 2]:
         errors.append(f"Duplicates: {dupes}")
     if errors:
-        sys.exit('\nERROR: '.join(("", *errors)).strip())
+        sys.exit("\nERROR: ".join(("", *errors)).strip())
 
     slot_list = [slot_assignments.get(i) for i in range(max_slot + 1)]
 
@@ -143,13 +163,13 @@ def _compute_slot_list(
                 break
 
     names = [(f, b) for b, f in reversed(todo_names.items())]
-    slot_list = [i or (names and names.pop()) or (EMPTY_PATCH, ".bin") for i in slot_list]
-    assert not names, names
 
     while len(slot_list) > slot_count and not slot_list[-1]:
         slot_list.pop()
 
-    return slot_list
+    sl = [i or (names and names.pop()) or (EMPTY_PATCH, ".bin") for i in slot_list]
+    assert not names, names
+    return sl
 
 
 _NO_PATH = Path()

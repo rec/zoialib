@@ -1,8 +1,9 @@
-from typer import Typer
+import glob
 import re
 import typing as t
 from pathlib import Path
 
+from typer import Typer
 
 ZFILE_MATCH = re.compile(r"(\d\d\d_zoia_)(.*\.bin)").match
 LIBFILE_MATCH = re.compile(r".*\.bin").match
@@ -17,6 +18,8 @@ app = Typer(
 
 
 def split_file(file: str | Path) -> tuple[str, str]:
+    import sys
+
     s = Path(file).name
     if m := ZFILE_MATCH(s):
         g = m.groups()
@@ -24,15 +27,18 @@ def split_file(file: str | Path) -> tuple[str, str]:
         g = "", *m.groups()
     else:
         raise ValueError("Not a patch file")
-    assert len(g) == 2
+    assert len(g) == 2, g
     return g
-
 
 
 def expand_files(files: t.Iterable[Path]) -> t.Iterator[Path]:
     for f in files:
-        if f.suffix == ".txt":
+        if glob.has_magic(s := str(f)):
+            yield from expand_files(Path().glob(s))
+        elif f.suffix == ".txt":
             li = f.read_text().splitlines()
-            yield from expand_files(Path(t) for s in li if (t := s.partition("#")[0].strip()))
+            yield from expand_files(
+                Path(t) for s in li if (t := s.partition("#")[0].strip())
+            )
         else:
             yield f
