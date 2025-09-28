@@ -1,14 +1,14 @@
-import collections
 import datetime
 import shutil
 import sys
 import typing as t
+from collections import Counter
 from pathlib import Path
 
 from typer import Argument, Option
 
 from . import app
-from .file import dump, expand_files, load, split_file
+from .file import dump, expand_files, load, patch_name
 
 EMPTY_PATCH = Path(__file__).parents[1] / "zoia_empty.bin"
 TIMESTAMP = datetime.datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
@@ -93,8 +93,8 @@ def _prepare(
     files = list(expand_files(files))
     slot_list = _compute_slot_list(cfg.get("slots", {}), files, slot_count)
 
-    def copy(i: int, source: Path, base: str) -> tuple[Path, Path]:
-        assert isinstance(base, str), base
+    def copy(i: int, source: Path) -> tuple[Path, Path]:
+        base = patch_name(source)
         target = output / f"{i:03}_zoia_{base}"
         if update_slots_file and base:
             slot = cfg.setdefault("slots", {}).setdefault(f"{i:03}", [])
@@ -102,26 +102,28 @@ def _prepare(
                 slot.append(base)
         return source, target
 
-    return [copy(i, s, b) for i, (s, b) in enumerate(slot_list)]
+    return [copy(i, p) for i, p in enumerate(slot_list)]
 
 
 def _compute_slot_list(
     slots: dict[str, t.Any],
     files: list[Path],
     slot_count: int,
-) -> list[tuple[Path, str]]:
+) -> list[Path]:
     slot_assignments = {}
     todo, bad, bad_slots, collisions = [], [], [], []
     max_slot = max(len(files), slot_count) - 1
-    for f in files:
+    todo_indexes: dict[str, tuple[Path, list[int]]] = {}
+    for i, f in enumerate(files):
         body, _, slot_str = f.name.partition(":")  # : indicates slot
         try:
-            base = split_file(body)[1]
+            base = patch_name(Path(body))
         except ValueError:
             bad.append(f)
             continue
         if not slot_str:
-            todo.append((f, base))
+            todo.append(f)
+            todo_indexes.setdefault(base, (f, []))[1].append(i)
             continue
         try:
             slot = int(slot_str, 10)
@@ -132,7 +134,7 @@ def _compute_slot_list(
         if slot in slot_assignments:
             collisions.append(slot)
         else:
-            slot_assignments[slot] = (f, base)
+            slot_assignments[slot] = f
 
     errors: list[str] = []
     if bad:
@@ -141,33 +143,34 @@ def _compute_slot_list(
         errors.append(f"Bad slot identifier: {bad_slots}")
     if collisions:
         errors.append(f"Slot numbers must be distinct: {collisions}")
-    d = collections.Counter(base for f, base in todo)
-    if dupes := [k for k, v in d.items() if v > 2]:
-        errors.append(f"Duplicates: {dupes}")
     if errors:
         sys.exit("\nERROR: ".join(("", *errors)).strip())
 
+    for v in todo_indexes.values():
+        v[1].reverse()
+
     slot_list = [slot_assignments.get(i) for i in range(max_slot + 1)]
 
-    todo_names = {base: f for f, base in todo}
     for i, s in enumerate(slot_list):
-        if not todo_names:
+        if not todo_indexes:
             break
         if s:
             continue
         for sl in slots.get(f"{i:03}", ()):
-            if (f := todo_names.pop(sl, _NO_PATH)) is not _NO_PATH:
-                slot_list[i] = (f, sl)
+            if f_indexes := todo_indexes.get(sl):
+                f, indexes = f_indexes
+                slot_list[i] = f
+                indexes.pop()
+                if not indexes:
+                    todo_indexes.pop(sl)
                 break
 
-    names = [(f, b) for b, f in reversed(todo_names.items())]
+    it = sorted((i, b) for b, f in todo_indexes.items() for i in f)
+    names = [i[1] for i in reversed(it)]
 
-    sl = [i or (names and names.pop()) or EMPTY for i in slot_list]
-    while len(sl) > slot_count and sl[-1] == EMPTY:
+    sl = [i or (names and names.pop()) or EMPTY_PATCH for i in slot_list]
+    while len(sl) > slot_count and sl[-1] == EMPTY_PATCH:
         sl.pop()
 
     assert not names, (names, sl)
     return sl
-
-
-_NO_PATH = Path()

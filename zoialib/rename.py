@@ -5,7 +5,7 @@ from pathlib import Path
 from typer import Argument, Option
 
 from . import app
-from .file import expand_files, split_file
+from .file import expand_files, patch_name
 
 
 @app.command(help="Rename ZOIA patch files to remove the slot number and marker string")
@@ -48,7 +48,7 @@ def _rename(files: list[Path], force: bool, verbose: bool) -> list[tuple[Path, P
     missing, zoia, not_zoia, already_exists = [], [], [], []
     for file in expand_files(files):
         try:
-            prefix, base = split_file(file)
+            base = patch_name(file)
         except ValueError:
             not_zoia.append(file)
             continue

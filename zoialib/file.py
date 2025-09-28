@@ -3,12 +3,13 @@ import io
 import json
 import re
 import typing as t
+from functools import cache
 from pathlib import Path
 
 import tomlkit
 import yaml
 
-ZFILE_MATCH = re.compile(r"(\d\d\d_zoia_)(.*\.bin)").match
+ZFILE_MATCH = re.compile(r"\d\d\d_zoia_(.*\.bin)").match
 LIBFILE_MATCH = re.compile(r".*\.bin").match
 DRY_RUN = False
 _LOAD: dict[str, t.Callable[[io.TextIOWrapper], t.MutableMapping[str, t.Any]]] = {
@@ -39,18 +40,12 @@ def dump(data: t.MutableMapping[str, t.Any], p: Path) -> None:
         dump(data, fp)
 
 
-def split_file(file: str | Path) -> tuple[str, str]:
-    import sys
-
-    s = Path(file).name
-    if m := ZFILE_MATCH(s):
-        g = m.groups()
-    elif m := LIBFILE_MATCH(s):
-        g = "", *m.groups()
+@cache
+def patch_name(file: Path) -> str:
+    if m := ZFILE_MATCH(file.name) or LIBFILE_MATCH(file.name):
+        return m.groups()[0]
     else:
         raise ValueError("Not a patch file")
-    assert len(g) == 2, g
-    return g
 
 
 def expand_files(files: t.Iterable[Path]) -> t.Iterator[Path]:
