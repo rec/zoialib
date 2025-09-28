@@ -2,7 +2,7 @@
 
 ## What is `zoialib`?
 
-Inspired by the ground-breaking
+Inspired by
 [`repatch.py`](https://patchstorage.com/repatch-py-organize-and-auto-name-your-patches/)
 ([source](https://gist.github.com/BenQuigley/7b4c70cac1183a16aed89b8b209364a2)),
 `zoialib` is a command line program that prepares patch directories to download
