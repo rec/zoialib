@@ -1,14 +1,33 @@
 # 🔊 `zoialib`: a patch librarian for ZOIA 🔊
 
-`zoialib` is a command line librarian for Empress ZOIA patches.
-
 ## What is `zoialib`?
 
 Inspired by the ground-breaking
 [`repatch.py`](https://patchstorage.com/repatch-py-organize-and-auto-name-your-patches/)
 ([source](https://gist.github.com/BenQuigley/7b4c70cac1183a16aed89b8b209364a2)),
 `zoialib` is a command line program that prepares patch directories to download
-to a ZOIA.
+to ZOIA.
+
+## How to install `zoialib`
+
+You can use `pip`, `uv`, `poetry`, `conda` or any other tool for installing
+Python modules.
+
+```
+pip install zoialib
+
+# or
+
+uv add zoialib
+
+# or
+
+poetry add zoialib
+
+# or
+
+conda install zoialib
+```
 
 ## Some background on ZOIA patch directories
 
@@ -26,18 +45,17 @@ eight patches:
 007_zoia_Tiny_Orchestra.bin
 ```
 
-The first three letters of ZOIA patch file name are the _slot number_, a decimal number
+The first three letters of a ZOIA patch file name are the _slot number_, three digits
 like `096`.
 
-The next six letters are the fixed _marker_ string `_zoia_`.
+The next six letters are the fixed _marker string_ `_zoia_`.
 
-Then then there's the _patch name_, in the first patch, `Gainfully_fun`: the patch file
-always ends with the _suffix_ `.bin`.  ZOIA accepts patch names containing upper and
-lower case letters, numbers, underscores, and perhaps more (TBD).
+Then then there's the _patch name_, e.g. `Gainfully_fun`, and the patch file always ends
+with the _suffix_ `.bin`.
 
 Finally, patch slots must always be in consecutive order, with no gaps. If don't you want
 any patch in a slot, you must fill it with
-[a blank patch](https://patchstorage.com/64-blank-zoia-patches/).
+a blank patch [like these](https://patchstorage.com/64-blank-zoia-patches/).
 
 ## What problems does `zoialib` solve?
 
@@ -52,17 +70,17 @@ NOTE: if you have a setup where two files like, say, `000_zoia_synth.bin` and
 `001_zoia_synth.bin` have the same patch name `synth` but are _different_ patches, **do
 not use this program** as it might destroy your data!
 
-## * `zoialib rename` and `zoialib prepare`
+## The commands
 
-`zoialib` has two commands:
+`zoialib` has two commands.
 
-* `zoialib rename` renames patch files to remove the slot number and marker string
 * `zoialib prepare` prepares a ZOIA patch directory
+* `zoialib rename` renames patch files to remove the slot number and marker string
 
 ### `zoialib rename`
 
 `zoialib rename FILE [FILE...]` simply renames one or more ZOIA patch files to just use
-the patch name
+the patch name.
 
 For example, `zoialib rename 004_zoia_Angry_robots.bin` would rename the file
 `004_zoia_Angry_robots.bin` to `Angry_robots.bin`.
@@ -104,11 +122,11 @@ Copying downloads/three.bin:5 to output/005_three.bin
 
 #### The slot list file
 
-If you like your slot numbers not to change very much, for example if you are
-sending program changes to ZOIA, there's a nifty feature called the _slot list file_.
-by default named `slot_list.toml`, automatically created and maintained by `zoialib`.
+If you like your slot numbers to remain stable, for example if you are sending program
+changes to ZOIA, there's a nifty feature called the _slot list file_.  by default named
+`slot_list.toml`, automatically created and maintained by `zoialib`.
 
-Running `zoia prepare` with the `--update-slots-file`/`-u` flag updates the slot list
+Running `zoialib prepare` with the `--update-slots-file`/`-u` flag updates the slot list
 file with the slot assignments from the current run so the next time these patches
 are seeing, they can get the same patch number if possible.
 
@@ -129,11 +147,45 @@ Copying three.bin to output/002_zoia_three.bin
 The slot list file is in [TOML](https://toml.io/en/), a language for configuration files
 that is designed to be easy for people to edit without making mistakes.
 
-## Useful flags common to both `zoialib rename` and `zoialib prepare`
+## Useful features common to both commands
+
+### Flags
 
 * `--help` or `-h` prints the help message for the command
   * Example: `zoialib rename --help` or `zoialib rename -h`.
 
-* `--verbose`/`-v` makes the program print more messages
+* `--verbose`/`-v` makes the program print more information
 
 * `--dry-run`/`-d` turns on `--verbose`, but doesn't actually execute the commands
+
+### Text files containing patch file names
+
+Instead of typing individual patch names, you can also use text files, ending in `.txt`,
+where each line is a patch file name or another text file.
+
+Blank lines and everything after the `#` comment character are ignored. Wildcard "globs"
+`*`, `?`, `[` and `]`, are expanded.
+
+Example:
+
+```
+$ cat my-patches.txt
+
+# For Friday's show
+
+downloads/one.bin:2
+downloads/two.bin:1  @ I hate this patch.
+
+# downloads/seventeen.bin:17
+downloads/three.bin:5
+
+$ zoialib prepare -v -o=output my-patches.txt
+
+Copying /Users/tom/code/zoialib/zoia_empty.bin to output/000_zoia_.bin
+Copying downloads/two.bin:1 to output/001_zoia_Rephrase_v1_0.bin
+Copying downloads/one.bin:2 to output/one.bin
+Copying /Users/tom/code/zoialib/zoia_empty.bin to output/003_zoia_.bin
+Copying /Users/tom/code/zoialib/zoia_empty.bin to output/004_zoia_.bin
+Copying downloads/three.bin:5 to output/005_three.bin
+
+```
