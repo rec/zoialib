@@ -2,8 +2,7 @@ import collections
 import datetime
 import typing as t
 from pathlib import Path
-from typer import Argument, Option, Typer
-import re
+from typer import Argument, Option
 import shutil
 import sys
 import tomlkit
@@ -50,7 +49,7 @@ def prepare(
         help="Print more information",
     ),
     update_slots_file: bool = Option(
-        True,
+        False,
         "--update-slots-file",
         "-w/-n",
         help="If true, update the slot list file with the slot assignments",
@@ -76,14 +75,14 @@ def prepare(
         if verbose:
             print(f"Copying {source} to {target}")
         if not dry_run:
-            if write_slots_file and base:
+            if update_slots_file and base:
                 slot = cfg.setdefault("slots", {}).setdefault(f"{i:03}", [])
                 if base not in slot:
                     slot.append(base)
 
             shutil.copy(str(source), str(target))
 
-    if write_slots_file and not dry_run and cfg:
+    if update_slots_file and not dry_run and cfg:
         slots_file.write_text(cfg.as_string())
     print(f"{len(slot_list)} file{(len(slot_list) != 1) * 's'} copied to {output}")
 

@@ -1,6 +1,5 @@
 from pathlib import Path
-from typer import Argument, Option, Typer
-import re
+from typer import Argument, Option
 import sys
 
 from . import app, DRY_RUN, expand_files, split_file
