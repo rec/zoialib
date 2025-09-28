@@ -5,14 +5,14 @@ import sys
 import typing as t
 from pathlib import Path
 
-import tomlkit
 from typer import Argument, Option
 
 from . import app
-from .file import expand_files, split_file
+from .file import dump, expand_files, load, split_file
 
 EMPTY_PATCH = Path(__file__).parents[1] / "zoia_empty.bin"
 TIMESTAMP = datetime.datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
+EMPTY = EMPTY_PATCH, ".bin"
 
 
 @app.command(help="Copy patch files into a ZOIA patch directory")
@@ -53,15 +53,12 @@ def prepare(
     update_slots_file: bool = Option(
         False,
         "--update-slots-file",
-        "-w/-n",
+        "-u/-n",
         help="If true, update the slot list file with the slot assignments",
     ),
 ) -> None:
     verbose = verbose or dry_run
-    if slots_file.exists():
-        cfg = tomlkit.loads(slots_file.read_text())
-    else:
-        cfg = tomlkit.TOMLDocument()
+    cfg = load(slots_file)
 
     if not output.exists():
         if verbose:
@@ -78,15 +75,15 @@ def prepare(
 
     if update_slots_file and cfg:
         if verbose:
-            print("Writing {slots_file}")
+            print(f"Writing {slots_file}")
         if not dry_run:
-            slots_file.write_text(cfg.as_string())
+            dump(cfg, slots_file)
 
     print(f"{len(copies)} file{(len(copies) != 1) * 's'} copied to {output}")
 
 
 def _prepare(
-    cfg: tomlkit.TOMLDocument,
+    cfg: t.MutableMapping,
     files: list[Path],
     output: Path,
     slot_count: int,
@@ -165,11 +162,11 @@ def _compute_slot_list(
 
     names = [(f, b) for b, f in reversed(todo_names.items())]
 
-    while len(slot_list) > slot_count and not slot_list[-1]:
-        slot_list.pop()
+    sl = [i or (names and names.pop()) or EMPTY for i in slot_list]
+    while len(sl) > slot_count and sl[-1] == EMPTY:
+        sl.pop()
 
-    sl = [i or (names and names.pop()) or (EMPTY_PATCH, ".bin") for i in slot_list]
-    assert not names, names
+    assert not names, (names, sl)
     return sl
 
 
