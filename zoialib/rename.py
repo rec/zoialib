@@ -1,4 +1,5 @@
 import sys
+from collections import Counter
 from pathlib import Path
 
 from typer import Argument, Option
@@ -68,6 +69,10 @@ def _rename(files: list[Path], force: bool, verbose: bool) -> list[tuple[Path, P
         errors.append(f"Missing: {missing}")
     if already_exists:
         errors.append(f"Cannot overwrite: {already_exists}. Use -f to replace")
+    if multi := [k for k, v in Counter(t for s, t in zoia).items() if v > 2]:
+        errors.append(f"One source writing to multiple targets: {multi}")
+    if dupes := [k for k, v in Counter(s for s, t in zoia).items() if v > 2]:
+        errors.append(f"Multiple sources writing to the same target: {dupes}")
     if not (errors or zoia):
         errors.append("No files to rename")
 
