@@ -12,7 +12,6 @@ from .file import dump, expand_files, load, patch_name
 
 EMPTY_PATCH = Path(__file__).parents[1] / "zoia_empty.bin"
 TIMESTAMP = datetime.datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
-EMPTY = EMPTY_PATCH, ".bin"
 
 
 @app.command(help="Copy patch files into a ZOIA patch directory")
@@ -107,42 +106,49 @@ def _prepare(
 
 def _compute_slot_list(
     slots: dict[str, t.Any],
-    files: list[Path],
+    paths: list[Path],
     slot_count: int,
 ) -> list[Path]:
     slot_assignments = {}
-    todo, bad, bad_slots, collisions = [], [], [], []
-    max_slot = max(len(files), slot_count) - 1
-    todo_indexes: dict[str, tuple[Path, list[int]]] = {}
-    for i, f in enumerate(files):
-        body, _, slot_str = f.name.partition(":")  # : indicates slot
+    bad, bad_slots, collisions = [], [], []
+    max_slot = max(len(paths), slot_count) - 1
+
+    class PathIndexes(t.NamedTuple):
+        path: Path
+        file_indexes: list[int]
+
+    todo_indexes: dict[str, PathIndexes] = {}
+    for i, p in enumerate(paths):
+        body, _, slot_str = p.name.partition(":")  # : indicates slot
         try:
             base = patch_name(Path(body))
         except ValueError:
-            bad.append(f)
+            bad.append(p)
             continue
         if not slot_str:
-            todo.append(f)
-            todo_indexes.setdefault(base, (f, []))[1].append(i)
+            todo_indexes.setdefault(base, PathIndexes(p, [])).file_indexes.append(i)
             continue
         try:
             slot = int(slot_str, 10)
         except Exception:
-            bad_slots.append(f)
+            bad_slots.append(p)
             continue
         max_slot = max(slot, max_slot)
         if slot in slot_assignments:
             collisions.append(slot)
         else:
-            slot_assignments[slot] = f
+            slot_assignments[slot] = p
 
     errors: list[str] = []
+    def join(it: t.Sequence[t.Any]) -> str:
+        return ", ".join(str(i) for i in it)
+
     if bad:
-        errors.append(f"Not zoia: {bad}")
+        errors.append(f"Not a zoia file: {join(bad)}")
     if bad_slots:
-        errors.append(f"Bad slot identifier: {bad_slots}")
+        errors.append(f"Bad slot identifier: {join(bad_slots)}")
     if collisions:
-        errors.append(f"Slot numbers must be distinct: {collisions}")
+        errors.append(f"Slot numbers must be distinct: {join(collisions)}")
     if errors:
         sys.exit("\nERROR: ".join(("", *errors)).strip())
 
@@ -156,21 +162,25 @@ def _compute_slot_list(
             break
         if s:
             continue
-        for sl in slots.get(f"{i:03}", ()):
-            if f_indexes := todo_indexes.get(sl):
+        for slot in slots.get(f"{i:03}", ()):
+            if f_indexes := todo_indexes.get(slot):
                 f, indexes = f_indexes
                 slot_list[i] = f
                 indexes.pop()
                 if not indexes:
-                    todo_indexes.pop(sl)
+                    todo_indexes.pop(slot)
                 break
 
-    it = sorted((i, b) for b, f in todo_indexes.items() for i in f)
+    it = sorted((i, v.path) for v in todo_indexes.values() for i in v.file_indexes)
     names = [i[1] for i in reversed(it)]
 
-    sl = [i or (names and names.pop()) or EMPTY_PATCH for i in slot_list]
-    while len(sl) > slot_count and sl[-1] == EMPTY_PATCH:
-        sl.pop()
+    result = [p or (names and names.pop()) or EMPTY_PATCH for p in slot_list]
+    if len(result) < slot_count:
+        result.extend(EMPTY_PATCH for _ in range(slot_count - len(result)))
+    else:
+        while len(result) > slot_count and result[-1] == EMPTY_PATCH:
+            result.pop()
 
-    assert not names, (names, sl)
-    return sl
+    assert not names, (names, result)
+    assert all(isinstance(i, Path) for i in result)
+    return result

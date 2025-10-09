@@ -10,7 +10,7 @@ import tomlkit
 import yaml
 
 ZFILE_MATCH = re.compile(r"\d\d\d_zoia_(.*\.bin)").match
-LIBFILE_MATCH = re.compile(r".*\.bin").match
+LIBFILE_MATCH = re.compile(r"(.*\.bin)").match
 DRY_RUN = False
 _LOAD: dict[str, t.Callable[[io.TextIOWrapper], t.MutableMapping[str, t.Any]]] = {
     ".toml": tomlkit.load,
