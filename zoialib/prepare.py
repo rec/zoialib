@@ -181,6 +181,8 @@ def _compute_slot_list(
         while len(result) > slot_count and result[-1] == EMPTY_PATCH:
             result.pop()
 
+    if len(result) > 64:
+        print(f"WARNING: ZOIA can only see the first 64 patches ({len(result)} found)")
+
     assert not names, (names, result)
-    assert all(isinstance(i, Path) for i in result)
     return result
