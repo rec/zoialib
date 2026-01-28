@@ -1,7 +1,7 @@
 [project]
 name = "zoialib"
 version = "0.6.0"
-description = "A patch librarian for the Empress ZOIA"
+description = "🍱 A patch librarian for the Empress ZOIA 🍱"
 readme = "README.md"
 requires-python = ">=3.11"
 dependencies = [
