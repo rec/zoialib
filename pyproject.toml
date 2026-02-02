@@ -11,6 +11,7 @@ dependencies = [
     "typer-slim>=0.19.2",
     "types-pyyaml>=6.0.12.20250915",
 ]
+classifiers = ["Programming Language :: Python :: 3", "Programming Language :: Python :: 3.11", "Programming Language :: Python :: 3.12", "Programming Language :: Python :: 3.13", "Programming Language :: Python :: 3.14"]
 
 [build-system]
 requires = ["hatchling"]
