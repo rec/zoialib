@@ -18,10 +18,20 @@ build-backend = "hatchling.build"
 
 [dependency-groups]
 dev = [
-    "mypy>=1.18.2",
+    "coverage>=7.13.2",
     "pytest>=8.4.2",
+    "pyupgrade>=3.21.2",
     "ruff>=0.13.2",
+    "ty>=0.0.14",
 ]
 
 [project.scripts]
 zoialib = "zoialib.__main__:app"
+
+[tool.coverage]
+[tool.coverage.run]
+branch = true
+
+[tool.coverage.report]
+skip_covered = true
+exclude_lines = ["pragma: no cover", "if False:", "if __name__ == .__main__.:", "raise NotImplementedError"]
