@@ -10,50 +10,50 @@ from typer import Argument, Option
 from . import app
 from .file import dump, expand_files, load, patch_name
 
-EMPTY_PATCH = Path(__file__).parents[1] / "zoia_empty.bin"
-TIMESTAMP = datetime.datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
+EMPTY_PATCH = Path(__file__).parents[1] / 'zoia_empty.bin'
+TIMESTAMP = datetime.datetime.now().strftime('%Y-%m-%d_%H-%M-%S')
 
 
-@app.command(help="Copy patch files into a ZOIA patch directory")
+@app.command(help='Copy patch files into a ZOIA patch directory')
 def prepare(
     files: list[Path] = Argument(
-        help="List of file names to prepare",
+        help='List of file names to prepare',
     ),
     dry_run: bool = Option(
         False,
-        "--dry-run",
-        "-d",
+        '--dry-run',
+        '-d',
         help="Print commands, don't execute them",
     ),
     output: Path = Option(
-        Path(f"zoia-{TIMESTAMP}"),
-        "--output",
-        "-o",
-        help="Directory to write patch files to",
+        Path(f'zoia-{TIMESTAMP}'),
+        '--output',
+        '-o',
+        help='Directory to write patch files to',
     ),
     slot_count: int = Option(
         0,
-        "--slot-count",
-        "-s",
-        help="How many slots to fill. If zero, fill to the last slot",
+        '--slot-count',
+        '-s',
+        help='How many slots to fill. If zero, fill to the last slot',
     ),
     slots_file: Path = Option(
-        Path("slots_file.toml"),
-        "--slots-file",
-        "-f",
-        help="Set the file used to store slot lists",
+        Path('slots_file.toml'),
+        '--slots-file',
+        '-f',
+        help='Set the file used to store slot lists',
     ),
     verbose: bool = Option(
         False,
-        "--verbose",
-        "-v",
-        help="Print more information",
+        '--verbose',
+        '-v',
+        help='Print more information',
     ),
     update_slots_file: bool = Option(
         False,
-        "--update-slots-file",
-        "-u/-n",
-        help="If true, update the slot list file with the slot assignments",
+        '--update-slots-file',
+        '-u/-n',
+        help='If true, update the slot list file with the slot assignments',
     ),
 ) -> None:
     verbose = verbose or dry_run
@@ -61,24 +61,24 @@ def prepare(
 
     if not output.exists():
         if verbose:
-            print("Making output directory", output)
+            print('Making output directory', output)
         if not dry_run:
             output.mkdir(exist_ok=True, parents=True)
 
     copies = _prepare(cfg, files, output, slot_count, slots_file, update_slots_file)
     for source, target in copies:
         if verbose:
-            print(f"Copying {source} to {target}")
+            print(f'Copying {source} to {target}')
         if not dry_run:
             shutil.copy(str(source), str(target))
 
     if update_slots_file and cfg:
         if verbose:
-            print(f"Writing {slots_file}")
+            print(f'Writing {slots_file}')
         if not dry_run:
             dump(cfg, slots_file)
 
-    print(f"{len(copies)} file{(len(copies) != 1) * 's'} copied to {output}")
+    print(f'{len(copies)} file{(len(copies) != 1) * "s"} copied to {output}')
 
 
 def _prepare(
@@ -90,13 +90,13 @@ def _prepare(
     update_slots_file: bool,
 ) -> list[tuple[Path, Path]]:
     files = list(expand_files(files))
-    slot_list = _compute_slot_list(cfg.get("slots", {}), files, slot_count)
+    slot_list = _compute_slot_list(cfg.get('slots', {}), files, slot_count)
 
     def copy(i: int, source: Path) -> tuple[Path, Path]:
         base = patch_name(source)
-        target = output / f"{i:03}_zoia_{base}"
+        target = output / f'{i:03}_zoia_{base}'
         if update_slots_file and base:
-            slot = cfg.setdefault("slots", {}).setdefault(f"{i:03}", [])
+            slot = cfg.setdefault('slots', {}).setdefault(f'{i:03}', [])
             if base not in slot:
                 slot.append(base)
         return source, target
@@ -119,7 +119,7 @@ def _compute_slot_list(
 
     todo_indexes: dict[str, PathIndexes] = {}
     for i, p in enumerate(paths):
-        body, _, slot_str = p.name.partition(":")  # : indicates slot
+        body, _, slot_str = p.name.partition(':')  # : indicates slot
         try:
             base = patch_name(Path(body))
         except ValueError:
@@ -140,17 +140,18 @@ def _compute_slot_list(
             slot_assignments[slot] = p
 
     errors: list[str] = []
+
     def join(it: t.Sequence[t.Any]) -> str:
-        return ", ".join(str(i) for i in it)
+        return ', '.join(str(i) for i in it)
 
     if bad:
-        errors.append(f"Not a zoia file: {join(bad)}")
+        errors.append(f'Not a zoia file: {join(bad)}')
     if bad_slots:
-        errors.append(f"Bad slot identifier: {join(bad_slots)}")
+        errors.append(f'Bad slot identifier: {join(bad_slots)}')
     if collisions:
-        errors.append(f"Slot numbers must be distinct: {join(collisions)}")
+        errors.append(f'Slot numbers must be distinct: {join(collisions)}')
     if errors:
-        sys.exit("\nERROR: ".join(("", *errors)).strip())
+        sys.exit('\nERROR: '.join(('', *errors)).strip())
 
     for v in todo_indexes.values():
         v[1].reverse()
@@ -162,7 +163,7 @@ def _compute_slot_list(
             break
         if s:
             continue
-        for slot in slots.get(f"{i:03}", ()):
+        for slot in slots.get(f'{i:03}', ()):
             if f_indexes := todo_indexes.get(slot):
                 f, indexes = f_indexes
                 slot_list[i] = f
@@ -182,7 +183,7 @@ def _compute_slot_list(
             result.pop()
 
     if len(result) > 64:
-        print(f"WARNING: ZOIA can only see the first 64 patches ({len(result)} found)")
+        print(f'WARNING: ZOIA can only see the first 64 patches ({len(result)} found)')
 
     assert not names, (names, result)
     return result

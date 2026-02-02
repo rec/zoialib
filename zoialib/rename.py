@@ -8,40 +8,40 @@ from . import app
 from .file import expand_files, patch_name
 
 
-@app.command(help="Rename ZOIA patch files to remove the slot number and marker string")
+@app.command(help='Rename ZOIA patch files to remove the slot number and marker string')
 def rename(
-    files: list[Path] = Argument(help="A list of files to be renamed"),
+    files: list[Path] = Argument(help='A list of files to be renamed'),
     dry_run: bool = Option(
         False,
-        "--dry-run",
-        "-d",
+        '--dry-run',
+        '-d',
         help="Print commands, don't execute them",
     ),
     force: bool = Option(
         False,
-        "--force",
-        "-f",
-        help="Overwrite existing files",
+        '--force',
+        '-f',
+        help='Overwrite existing files',
     ),
     verbose: bool = Option(
         False,
-        "--verbose",
-        "-v",
-        help="Print more information",
+        '--verbose',
+        '-v',
+        help='Print more information',
     ),
 ) -> None:
     verbose = verbose or dry_run
     try:
         zoia = _rename(files, force, verbose)
     except ValueError as e:
-        sys.exit("\n".join(e.args))
+        sys.exit('\n'.join(e.args))
 
     for old, new in zoia:
         if verbose:
-            print(old, "->", new)
+            print(old, '->', new)
         if not dry_run:
             old.rename(new)
-    print(f"{len(zoia)} file{(len(zoia) != 1) * 's'} renamed")
+    print(f'{len(zoia)} file{(len(zoia) != 1) * "s"} renamed')
 
 
 def _rename(files: list[Path], force: bool, verbose: bool) -> list[tuple[Path, Path]]:
@@ -62,21 +62,21 @@ def _rename(files: list[Path], force: bool, verbose: bool) -> list[tuple[Path, P
                 zoia.append((file, new_file))
 
     if not_zoia:
-        print(f"WARNING: not zoia files: {not_zoia}", file=sys.stderr)
+        print(f'WARNING: not zoia files: {not_zoia}', file=sys.stderr)
 
     errors = []
     if missing:
-        errors.append(f"Missing: {missing}")
+        errors.append(f'Missing: {missing}')
     if already_exists:
-        errors.append(f"Cannot overwrite: {already_exists}. Use -f to replace")
+        errors.append(f'Cannot overwrite: {already_exists}. Use -f to replace')
     if multi := [k for k, v in Counter(t for s, t in zoia).items() if v > 2]:
-        errors.append(f"One source writing to multiple targets: {multi}")
+        errors.append(f'One source writing to multiple targets: {multi}')
     if dupes := [k for k, v in Counter(s for s, t in zoia).items() if v > 2]:
-        errors.append(f"Multiple sources writing to the same target: {dupes}")
+        errors.append(f'Multiple sources writing to the same target: {dupes}')
     if not (errors or zoia):
-        errors.append("No files to rename")
+        errors.append('No files to rename')
 
     if errors:
-        raise ValueError("\nERROR: ".join(("", *errors)).strip())
+        raise ValueError('\nERROR: '.join(('', *errors)).strip())
 
     return zoia
