@@ -2,7 +2,6 @@ import datetime
 import shutil
 import sys
 import typing as t
-from collections import Counter
 from pathlib import Path
 
 from typer import Argument, Option
