@@ -13,10 +13,6 @@ dependencies = [
 ]
 classifiers = ["Programming Language :: Python :: 3", "Programming Language :: Python :: 3.11", "Programming Language :: Python :: 3.12", "Programming Language :: Python :: 3.13", "Programming Language :: Python :: 3.14"]
 
-[build-system]
-requires = ["hatchling"]
-build-backend = "hatchling.build"
-
 [dependency-groups]
 dev = [
     "coverage>=7.13.2",
@@ -39,3 +35,18 @@ exclude_lines = ["pragma: no cover", "if False:", "if __name__ == .__main__.:", 
 
 [tool.ruff.format]
 quote-style = "single"
+
+[tool.poetry]
+name = "zoialib"
+version = "0.1.0"
+description = "🍱 A patch librarian for the Empress ZOIA 🍱"
+authors = ["Tom Ritchford <tom@swirly.com>"]
+readme = "README.md"
+
+[tool.poetry.dependencies]
+python = ">=3.11"
+
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
